@@ -37,6 +37,11 @@
             btn2Gray = new Button();
             btnRGB2BW = new Button();
             tackBWTh = new TrackBar();
+            labTrackValue = new Label();
+            btnCircleROI = new Button();
+            btnBlob = new Button();
+            radBtnWhite = new RadioButton();
+            radBtnBlack = new RadioButton();
             ((System.ComponentModel.ISupportInitialize)tackBWTh).BeginInit();
             SuspendLayout();
             // 
@@ -92,13 +97,13 @@
             // 
             // btnAddROI
             // 
-            btnAddROI.Font = new Font("Microsoft JhengHei UI", 12F);
+            btnAddROI.Font = new Font("Microsoft JhengHei UI", 8F);
             btnAddROI.ImageAlign = ContentAlignment.MiddleLeft;
             btnAddROI.Location = new Point(359, 369);
             btnAddROI.Name = "btnAddROI";
             btnAddROI.Size = new Size(94, 72);
             btnAddROI.TabIndex = 5;
-            btnAddROI.Text = "Attach ROI";
+            btnAddROI.Text = "Attach Rectangle ROI";
             btnAddROI.UseVisualStyleBackColor = true;
             btnAddROI.Click += btnAddROI_Click;
             // 
@@ -136,11 +141,71 @@
             tackBWTh.Value = 128;
             tackBWTh.ValueChanged += tackBWTh_ValueChanged;
             // 
+            // labTrackValue
+            // 
+            labTrackValue.AutoSize = true;
+            labTrackValue.Location = new Point(717, 422);
+            labTrackValue.Name = "labTrackValue";
+            labTrackValue.Size = new Size(18, 19);
+            labTrackValue.TabIndex = 9;
+            labTrackValue.Text = "0";
+            // 
+            // btnCircleROI
+            // 
+            btnCircleROI.Font = new Font("Microsoft JhengHei UI", 8F);
+            btnCircleROI.ImageAlign = ContentAlignment.MiddleLeft;
+            btnCircleROI.Location = new Point(835, 372);
+            btnCircleROI.Name = "btnCircleROI";
+            btnCircleROI.Size = new Size(94, 72);
+            btnCircleROI.TabIndex = 10;
+            btnCircleROI.Text = "Attach Circle ROI";
+            btnCircleROI.UseVisualStyleBackColor = true;
+            btnCircleROI.Click += btnCircleROI_Click;
+            // 
+            // btnBlob
+            // 
+            btnBlob.Font = new Font("Microsoft JhengHei UI", 12F);
+            btnBlob.ImageAlign = ContentAlignment.MiddleLeft;
+            btnBlob.Location = new Point(935, 366);
+            btnBlob.Name = "btnBlob";
+            btnBlob.Size = new Size(94, 72);
+            btnBlob.TabIndex = 11;
+            btnBlob.Text = "Blob";
+            btnBlob.UseVisualStyleBackColor = true;
+            btnBlob.Click += btnBlob_Click;
+            // 
+            // radBtnWhite
+            // 
+            radBtnWhite.AutoSize = true;
+            radBtnWhite.Location = new Point(1035, 391);
+            radBtnWhite.Name = "radBtnWhite";
+            radBtnWhite.Size = new Size(106, 23);
+            radBtnWhite.TabIndex = 12;
+            radBtnWhite.TabStop = true;
+            radBtnWhite.Text = "Blob White";
+            radBtnWhite.UseVisualStyleBackColor = true;
+            // 
+            // radBtnBlack
+            // 
+            radBtnBlack.AutoSize = true;
+            radBtnBlack.Location = new Point(1035, 422);
+            radBtnBlack.Name = "radBtnBlack";
+            radBtnBlack.Size = new Size(101, 23);
+            radBtnBlack.TabIndex = 13;
+            radBtnBlack.TabStop = true;
+            radBtnBlack.Text = "Blob Black";
+            radBtnBlack.UseVisualStyleBackColor = true;
+            // 
             // frmMain
             // 
             AutoScaleDimensions = new SizeF(9F, 19F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1020, 489);
+            ClientSize = new Size(1195, 489);
+            Controls.Add(radBtnBlack);
+            Controls.Add(radBtnWhite);
+            Controls.Add(btnBlob);
+            Controls.Add(btnCircleROI);
+            Controls.Add(labTrackValue);
             Controls.Add(tackBWTh);
             Controls.Add(btnRGB2BW);
             Controls.Add(btn2Gray);
@@ -168,5 +233,10 @@
         private Button btn2Gray;
         private Button btnRGB2BW;
         private TrackBar tackBWTh;
+        private Label labTrackValue;
+        private Button btnCircleROI;
+        private Button btnBlob;
+        private RadioButton radBtnWhite;
+        private RadioButton radBtnBlack;
     }
 }

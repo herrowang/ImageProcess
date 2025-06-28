@@ -1,32 +1,25 @@
 
+using RoomCV;
 using System.Drawing.Imaging;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace ImageProcess
 {
-    public enum MouseCrossDirectionType
-    {
-        East = 0,
-        West,
-        North,
-        South,
-        NorthEast,
-        NorthWest,
-        SouthEst,
-        SouthWest,
-        Center,
-    }
     public partial class frmMain : Form
     {
         private delegate void update_screen(Bitmap srcimg);
+        private delegate void ReflashDrawing(TROI roi);
         private Image srcImg;
         private Bitmap bmpSrcImg;
         private PictureBox picLoadImg;
         private bool bBeginDrag;
         private MouseCrossDirectionType directType;
+        private List<Rectangle> rects;
+        private ROIACTType roiAct;
         Point pCenter;
         Rectangle rect;
+        TROI gROI;
         Pen pen;
         public frmMain()
         {
@@ -69,31 +62,58 @@ namespace ImageProcess
             btnLoadImage.Left = pnlMainDisplay.Right + 30;
             btnAddROI.Top = btnLoadImage.Top;
             btnAddROI.Left = btnLoadImage.Right + 30;
-            btn2Gray.Top = btnAddROI.Top;
-            btn2Gray.Left = btnAddROI.Right + 30;
+            btnCircleROI.Top = btnAddROI.Top;
+            btnCircleROI.Left = btnAddROI.Right + 30;
+            btn2Gray.Top = btnCircleROI.Top;
+            btn2Gray.Left = btnCircleROI.Right + 30;
             btnRGB2BW.Top = btn2Gray.Top;
             btnRGB2BW.Left = btn2Gray.Right + 30;
             tackBWTh.Top = btnLoadImage.Bottom + 20; ;
             tackBWTh.Left = btnLoadImage.Left;
             tackBWTh.Width = 200;
+            labTrackValue.Top = tackBWTh.Bottom + 10;
+            labTrackValue.Left = tackBWTh.Left;
+            labTrackValue.Width = tackBWTh.Width;
+            labTrackValue.Text = tackBWTh.Value.ToString();
+            btnBlob.Top = btnAddROI.Bottom + 10;
+            btnBlob.Left = tackBWTh.Right + 10;
+            btnBlob.Width = btnAddROI.Width;
+            btnBlob.Height = btnAddROI.Height;
+            radBtnWhite.Top = btnBlob.Top;
+            radBtnWhite.Left = btnBlob.Right + 10;
+            radBtnBlack.Top = radBtnWhite.Bottom + 10;
+            radBtnBlack.Left = radBtnWhite.Left;
+            rects = new List<Rectangle>();
         }
-
         private void pictureMouseDragEnter(object sender, DragEventArgs e)
         {
-            pCenter.X = e.X;
-            pCenter.Y = e.Y;
-            rect = new Rectangle(pCenter.X - rect.Width / 2, pCenter.Y - rect.Height / 2, rect.Width, rect.Height);
-            picLoadImg.Invalidate();
+            if (e.X >= gROI.GetRegion().X
+                && e.X <= gROI.GetRegion().Right
+                && e.Y <= gROI.GetRegion().Bottom
+                && e.Y >= gROI.GetRegion().Top)
+            {
+                roiAct = ROIACTType.Attach;
+                pCenter.X = e.X;
+                pCenter.Y = e.Y;
+                rect = new Rectangle(pCenter.X - rect.Width / 2, pCenter.Y - rect.Height / 2, rect.Width, rect.Height);
+                picLoadImg.Invalidate();
+            }
         }
 
         private void pictureMouseDragOver(object sender, DragEventArgs e)
         {
-            pCenter.X = e.X;
-            pCenter.Y = e.Y;
-            rect = new Rectangle(pCenter.X - rect.Width / 2, pCenter.Y - rect.Height / 2, rect.Width, rect.Height);
-            picLoadImg.Invalidate();
+            if (e.X >= gROI.GetRegion().X
+                && e.X <= gROI.GetRegion().Right
+                && e.Y <= gROI.GetRegion().Bottom
+                && e.Y >= gROI.GetRegion().Top)
+            {
+                roiAct = ROIACTType.Attach;
+                pCenter.X = e.X;
+                pCenter.Y = e.Y;
+                rect = new Rectangle(pCenter.X - rect.Width / 2, pCenter.Y - rect.Height / 2, rect.Width, rect.Height);
+                picLoadImg.Invalidate();
+            }
         }
-
         private void pictureOnMouseDown(object sender, MouseEventArgs e)
         {
             PictureBox p = (PictureBox)sender;
@@ -124,102 +144,33 @@ namespace ImageProcess
 
             if (p != null)
             {
-                if ((e.X >= pnlMainDisplay.Left && e.Y >= pnlMainDisplay.Top)
+                if (gROI != null 
+                    && (e.X >= gROI.GetRegion().X
+                    && e.X <= gROI.GetRegion().Right
+                    && e.Y <= gROI.GetRegion().Bottom
+                    && e.Y >= gROI.GetRegion().Top))
+                {
+                    roiAct = ROIACTType.Attach;
+                }
+                    if ((e.X >= pnlMainDisplay.Left && e.Y >= pnlMainDisplay.Top)
                     && (e.X <= pnlMainDisplay.Right && e.Y <= pnlMainDisplay.Bottom))
                 {
                     labX.Text = "X:" + e.X.ToString();
                     labY.Text = "Y:" + e.Y.ToString();
                 }
 
-                if ((Math.Abs(e.X - pCenter.X) <= 10) && (Math.Abs(e.Y - pCenter.Y) <= 10))
+                if (gROI == null)
                 {
-                    Cursor = Cursors.Cross;
-                    directType = MouseCrossDirectionType.Center;
+                    return;
                 }
-                else if ((Math.Abs(e.X - rect.X) <= 10) && (Math.Abs(e.Y - rect.Top) <= 10))
-                {
-                    Cursor = Cursors.PanNW;
-                    directType = MouseCrossDirectionType.NorthWest;
-                }
-                else if ((Math.Abs(e.X - rect.X) <= 10) && (Math.Abs(e.Y - rect.Bottom) <= 10))
-                {
-                    directType = MouseCrossDirectionType.SouthWest;
-                    Cursor = Cursors.PanSW;
-                }
-                else if ((Math.Abs(e.X - rect.Right) <= 10) && (Math.Abs(e.Y - rect.Y) <= 10))
-                {
-                    directType = MouseCrossDirectionType.NorthEast;
-                    Cursor = Cursors.PanNE;
-                }
-                else if ((Math.Abs(e.X - rect.Right) <= 10) && (Math.Abs(e.Y - rect.Bottom) <= 10))
-                {
-                    directType = MouseCrossDirectionType.SouthEst;
-                    Cursor = Cursors.PanSE;
-                }
-                else
-                {
-                    Cursor = Cursors.Arrow;
-                }
+
+                Cursor = gROI.GetMouseCursor(new Point(e.X, e.Y), gROI);
 
                 if (e.Button == MouseButtons.Left)
                 {
-                    picMouseMove(directType, e);
+                    gROI.Move(new Point(e.X, e.Y), gROI);
+                    rect = gROI.GetRegion();
                 }
-            }
-        }
-
-        private void picMouseMove(MouseCrossDirectionType type, MouseEventArgs e)
-        {
-            Rectangle orgRect = rect;
-            int height = 0;
-            int width = 0;
-
-            if (rect.X < (picLoadImg.Left + 10)
-                || rect.Y < (picLoadImg.Top + 10)
-                || rect.Right > picLoadImg.Right - 10
-                || rect.Bottom > picLoadImg.Bottom - 10)
-            {
-                return;
-            }
-
-            switch (type)
-            {
-                case MouseCrossDirectionType.Center:
-                    pCenter.X = e.X;
-                    pCenter.Y = e.Y;
-                    rect.X = (pCenter.X - rect.Width / 2);
-                    rect.Y = (pCenter.Y - rect.Height / 2);
-                    break;
-                case MouseCrossDirectionType.NorthWest:
-                    width = Math.Abs(orgRect.Right - e.X);
-                    height = Math.Abs(orgRect.Bottom - e.Y);
-                    rect = new Rectangle(e.X, e.Y, width, height);
-                    pCenter.X = rect.X + rect.Width / 2;
-                    pCenter.Y = rect.Y + rect.Height / 2;
-                    break;
-                case MouseCrossDirectionType.NorthEast:
-                    width = e.X - orgRect.X;
-                    height = orgRect.Height + (orgRect.Y - e.Y);
-                    rect = new Rectangle(orgRect.X, e.Y, width, height);
-                    pCenter.X = rect.X + rect.Width / 2;
-                    pCenter.Y = rect.Y + rect.Height / 2;
-                    break;
-                case MouseCrossDirectionType.SouthWest:
-                    width = Math.Abs(e.X - orgRect.Right);
-                    height = Math.Abs(e.Y - orgRect.Top);
-                    rect = new Rectangle(e.X, orgRect.Y, width, height);
-                    pCenter.X = rect.X + rect.Width / 2;
-                    pCenter.Y = rect.Y + rect.Height / 2;
-                    break;
-                case MouseCrossDirectionType.SouthEst:
-                    width = Math.Abs(e.X - orgRect.X);
-                    height = Math.Abs(e.Y - orgRect.Y);
-                    rect = new Rectangle(orgRect.X, orgRect.Y, width, height);
-                    pCenter.X = rect.X + rect.Width / 2;
-                    pCenter.Y = rect.Y + rect.Height / 2;
-                    break;
-                default:
-                    break;
             }
         }
 
@@ -280,168 +231,80 @@ namespace ImageProcess
                 picLoadImg.Update();
                 picLoadImg.Refresh();
                 pnlMainDisplay.Refresh();
+                labCoordinate.Top = pnlMainDisplay.Bottom + 10;
+                labCoordinate.Left = pnlMainDisplay.Left;
+                labCoordinate.BackColor = Color.Red;
+                labX.Left = labCoordinate.Left;
+                labX.Top = labCoordinate.Bottom + 10;
+                labX.Width = labCoordinate.Width;
+                labY.Top = labX.Top;
+                labY.Left = labX.Right + 30;
+                labY.Width = labCoordinate.Width;
             }
         }
 
         private void btnAddROI_Click(object sender, EventArgs e)
         {
-            rect = new Rectangle(this.Top + (picLoadImg.Width/3), this.Left + (picLoadImg.Height/3), 100, 100);
-            pen = new Pen(Color.Red, 2);
-            pCenter = new Point();
-            pCenter.X = rect.Left + rect.Width / 2;
-            pCenter.Y = rect.Top + rect.Height / 2;
+            roiAct = ROIACTType.Attach;
+            gROI = new TROI(this.Top + (picLoadImg.Width / 3), this.Left + (picLoadImg.Height / 3), 100, 100, ROIType.Rectangle);
+            if (rects.Count > 0)
+            {
+                rects.Clear();
+            }
             bBeginDrag = true;
             picLoadImg.Invalidate();
+        }
+        private void UpdateDrawingPicture(TROI roi)
+        {
+            if (this.InvokeRequired)
+            {
+                this.BeginInvoke(new ReflashDrawing(UpdateDrawingPicture), roi);
+            }
+            else
+            {
+                Graphics g = picLoadImg.CreateGraphics();
+
+                if (rects.Count > 0)
+                {
+                    gROI.DrawROIs(rects, gROI, g);
+                }
+                else
+                {
+                    gROI.DrawROI(g);
+                }
+
+                picLoadImg.Update();
+                picLoadImg.Refresh();
+            }
         }
 
         private void picLoadImgOnPaint(object sender, PaintEventArgs e)
         {
-            if (pen != null && rect != null)
+            if (gROI != null)
             {
-                SolidBrush brush = new SolidBrush(Color.Green);
-                Pen p = new Pen(Color.LimeGreen, 5);
-                e.Graphics.DrawRectangle(pen, rect);
-                e.Graphics.DrawLine(p, new Point(pCenter.X - 10, pCenter.Y), new Point(pCenter.X + 10, pCenter.Y));
-                e.Graphics.DrawLine(p, new Point(pCenter.X, pCenter.Y - 10), new Point(pCenter.X, pCenter.Y + 10));
-                e.Graphics.FillRectangle(brush, new Rectangle(rect.X - 5, rect.Y - 5, 10, 10));
-                e.Graphics.FillRectangle(brush, new Rectangle(rect.X - 5, rect.Bottom - 5, 10, 10));
-                e.Graphics.FillRectangle(brush, new Rectangle(rect.Right - 5, rect.Y - 5, 10, 10));
-                e.Graphics.FillRectangle(brush, new Rectangle(rect.Right - 5, rect.Bottom - 5, 10, 10));
-            }
-            picLoadImg.Update();
-            picLoadImg.Refresh();
-        }
 
-        private Bitmap TransRGB2Gray(Bitmap srcImg)
-        {
-            int width = srcImg.Width;
-            int height = srcImg.Height;
-            Bitmap bitmap = new Bitmap(srcImg);
-            BitmapData bmpData = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadWrite, bitmap.PixelFormat);
-            Bitmap grayImage = new Bitmap(width, height, bitmap.PixelFormat);
-            BitmapData grayData = grayImage.LockBits(new Rectangle(0, 0, grayImage.Width, grayImage.Height), ImageLockMode.ReadWrite, grayImage.PixelFormat);
-
-            unsafe
-            {
-                int nRGBOffset = bmpData.Stride - bmpData.Width * (bitmap.PixelFormat == PixelFormat.Format24bppRgb ? 3 : 4);
-                int nGrayOffset = grayData.Stride - grayData.Width * (grayImage.PixelFormat == PixelFormat.Format24bppRgb ? 3 : 4);
-                byte* rgb_ptr = (byte*)(bmpData.Scan0);
-                byte* gray_ptr = (byte*)(grayData.Scan0);
-                byte grayVal = 0;
-
-                for (int y = 0; y < height; y++)
+                switch(roiAct)
                 {
-                    for (int x = 0; x < width; x++)
-                    {
-                        if (bitmap.PixelFormat == PixelFormat.Format24bppRgb)
+                    case ROIACTType.DrawBlob:
+                        if (rects.Count > 0)
                         {
-                            grayVal = (byte)((rgb_ptr[2] + rgb_ptr[1] + rgb_ptr[0]) / 3);
+                            gROI.DrawROIs(rects, gROI, e.Graphics);
+                            picLoadImg.Update();
+                            picLoadImg.Refresh();
                         }
-                        else
-                        {
-                            byte b = (byte)(rgb_ptr[2] * (rgb_ptr[3] / 255) + 255 - rgb_ptr[3]);
-                            byte g = (byte)(rgb_ptr[1] * (rgb_ptr[3] / 255) + 255 - rgb_ptr[3]);
-                            byte r = (byte)(rgb_ptr[0] * (rgb_ptr[3] / 255) + 255 - rgb_ptr[3]);
-
-                            if ((y > rect.Y && y < rect.Bottom)
-                                && (x > rect.X && x < rect.Right))
-                            {
-                                grayVal = (byte)((b + g + r) / 3);
-                                gray_ptr[0] = grayVal;
-                                gray_ptr[1] = grayVal;
-                                gray_ptr[2] = grayVal;
-                                gray_ptr[3] = rgb_ptr[3];
-                            }
-                            else
-                            {
-                                gray_ptr[0] = rgb_ptr[0];
-                                gray_ptr[1] = rgb_ptr[1];
-                                gray_ptr[2] = rgb_ptr[2];
-                                gray_ptr[3] = rgb_ptr[3];
-                            }
-
-                        }
-                        //*gray_ptr = grayVal;
-                        rgb_ptr += (bitmap.PixelFormat == PixelFormat.Format24bppRgb ? 3 : 4);
-                        gray_ptr += (grayImage.PixelFormat == PixelFormat.Format24bppRgb ? 3 : 4);
-                    }
-                    rgb_ptr += nRGBOffset;
-                    gray_ptr += nGrayOffset;
+                        break;
+                    case ROIACTType.Attach:
+                        gROI.DrawROI(e.Graphics);
+                        picLoadImg.Update();
+                        picLoadImg.Refresh();
+                        break;
                 }
-                bitmap.UnlockBits(bmpData);
-                grayImage.UnlockBits(grayData);
             }
-            grayImage.Save("test.bmp");
-            return grayImage;
         }
-
-        private Bitmap TransRGB2BW(Bitmap srcImg)
-        {
-            int width = srcImg.Width;
-            int height = srcImg.Height;
-            Bitmap bitmap = new Bitmap(srcImg);
-            BitmapData bmpData = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadWrite, bitmap.PixelFormat);
-            Bitmap bwImage = new Bitmap(width, height, bitmap.PixelFormat);
-            BitmapData bwData = bwImage.LockBits(new Rectangle(0, 0, bwImage.Width, bwImage.Height), ImageLockMode.ReadWrite, bwImage.PixelFormat);
-
-            unsafe
-            {
-                int nRGBOffset = bmpData.Stride - bmpData.Width * (bitmap.PixelFormat == PixelFormat.Format24bppRgb ? 3 : 4);
-                int nGrayOffset = bwData.Stride - bwData.Width * (bwData.PixelFormat == PixelFormat.Format24bppRgb ? 3 : 4);
-                byte* rgb_ptr = (byte*)(bmpData.Scan0);
-                byte* bw_ptr = (byte*)(bwData.Scan0);
-                byte bwVal = 0;
-
-                for (int y = 0; y < height; y++)
-                {
-                    for (int x = 0; x < width; x++)
-                    {
-                        if (bitmap.PixelFormat == PixelFormat.Format24bppRgb)
-                        {
-                            bwVal = (byte)((rgb_ptr[2] + rgb_ptr[1] + rgb_ptr[0]) / 3);
-                        }
-                        else
-                        {
-                            byte b = (byte)(rgb_ptr[2] * (rgb_ptr[3] / 255) + 255 - rgb_ptr[3]);
-                            byte g = (byte)(rgb_ptr[1] * (rgb_ptr[3] / 255) + 255 - rgb_ptr[3]);
-                            byte r = (byte)(rgb_ptr[0] * (rgb_ptr[3] / 255) + 255 - rgb_ptr[3]);
-
-                            if ((y > rect.Y && y < rect.Bottom)
-                                && (x > rect.X && x < rect.Right))
-                            {
-                                int val = tackBWTh.Value;
-                                bwVal = (byte)(((b + g + r) / 3) >= val ? 255 : 0);
-                                bw_ptr[0] = bwVal;
-                                bw_ptr[1] = bwVal;
-                                bw_ptr[2] = bwVal;
-                                bw_ptr[3] = rgb_ptr[3];
-                            }
-                            else
-                            {
-                                bw_ptr[0] = rgb_ptr[0];
-                                bw_ptr[1] = rgb_ptr[1];
-                                bw_ptr[2] = rgb_ptr[2];
-                                bw_ptr[3] = rgb_ptr[3];
-                            }
-
-                        }
-                        //*gray_ptr = grayVal;
-                        rgb_ptr += (bitmap.PixelFormat == PixelFormat.Format24bppRgb ? 3 : 4);
-                        bw_ptr += (bwImage.PixelFormat == PixelFormat.Format24bppRgb ? 3 : 4);
-                    }
-                    rgb_ptr += nRGBOffset;
-                    bw_ptr += nGrayOffset;
-                }
-                bitmap.UnlockBits(bmpData);
-                bwImage.UnlockBits(bwData);
-            }
-            bwImage.Save("test.bmp");
-            return bwImage;
-        }
-
         private void btn2Gray_Click(object sender, EventArgs e)
         {
-            Bitmap grayImage = TransRGB2Gray(bmpSrcImg);
+            ImgLib imgProc = new ImgLib(bmpSrcImg);
+            Bitmap grayImage = imgProc.RGB2Gray(gROI, bmpSrcImg);
 
             if (grayImage != null)
             {
@@ -454,10 +317,10 @@ namespace ImageProcess
                 pnlMainDisplay.Refresh();
             }
         }
-
         private void btnRGB2BW_Click(object sender, EventArgs e)
         {
-            Bitmap bwImage = TransRGB2BW(bmpSrcImg);
+            ImgLib imgProc = new ImgLib(bmpSrcImg);
+            Bitmap bwImage = imgProc.RGB2BW(gROI, bmpSrcImg, tackBWTh.Value);
 
             if (bwImage != null)
             {
@@ -470,11 +333,13 @@ namespace ImageProcess
                 pnlMainDisplay.Refresh();
             }
         }
-
         private void tackBWTh_ValueChanged(object sender, EventArgs e)
         {
-            Bitmap bwImage = TransRGB2BW(bmpSrcImg);
-
+            TrackBar t = (TrackBar)sender;
+            ImgLib imgProc = new ImgLib(bmpSrcImg);
+            Bitmap bwImage = imgProc.RGB2BW(gROI, bmpSrcImg, t.Value);
+            t.Text = tackBWTh.Value.ToString();
+            labTrackValue.Text = t.Value.ToString();
             if (bwImage != null)
             {
                 picLoadImg.InitialImage = null;
@@ -484,6 +349,29 @@ namespace ImageProcess
                 picLoadImg.Update();
                 picLoadImg.Refresh();
                 pnlMainDisplay.Refresh();
+            }
+        }
+        private void btnCircleROI_Click(object sender, EventArgs e)
+        {
+            roiAct = ROIACTType.Attach;
+            gROI = new TROI(this.Top + (picLoadImg.Width / 3), this.Left + (picLoadImg.Height / 3), 100, 100, ROIType.Circle);
+            bBeginDrag = true;
+            if (rects.Count > 0)
+            {
+                rects.Clear();
+            }
+            picLoadImg.Invalidate();
+        }
+
+        private void btnBlob_Click(object sender, EventArgs e)
+        {
+            ImgLib imgProc = new ImgLib(bmpSrcImg);
+            Graphics g = picLoadImg.CreateGraphics();
+            BlobType type = (radBtnWhite.Checked == true ? BlobType.White : BlobType.Black);
+            roiAct = ROIACTType.DrawBlob;
+            lock (rects)
+            {
+                rects = imgProc.BlobObject(gROI, bmpSrcImg, type, tackBWTh.Value);
             }
         }
     }
