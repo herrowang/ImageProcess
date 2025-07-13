@@ -42,6 +42,7 @@
             btnBlob = new Button();
             radBtnWhite = new RadioButton();
             radBtnBlack = new RadioButton();
+            btnMeasureLine = new Button();
             ((System.ComponentModel.ISupportInitialize)tackBWTh).BeginInit();
             SuspendLayout();
             // 
@@ -196,11 +197,24 @@
             radBtnBlack.Text = "Blob Black";
             radBtnBlack.UseVisualStyleBackColor = true;
             // 
+            // btnMeasureLine
+            // 
+            btnMeasureLine.Font = new Font("Microsoft JhengHei UI", 12F);
+            btnMeasureLine.ImageAlign = ContentAlignment.MiddleLeft;
+            btnMeasureLine.Location = new Point(851, 288);
+            btnMeasureLine.Name = "btnMeasureLine";
+            btnMeasureLine.Size = new Size(94, 72);
+            btnMeasureLine.TabIndex = 14;
+            btnMeasureLine.Text = "Draw Line";
+            btnMeasureLine.UseVisualStyleBackColor = true;
+            btnMeasureLine.Click += btnMeasureLine_Click;
+            // 
             // frmMain
             // 
             AutoScaleDimensions = new SizeF(9F, 19F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1195, 489);
+            Controls.Add(btnMeasureLine);
             Controls.Add(radBtnBlack);
             Controls.Add(radBtnWhite);
             Controls.Add(btnBlob);
@@ -238,5 +252,6 @@
         private Button btnBlob;
         private RadioButton radBtnWhite;
         private RadioButton radBtnBlack;
+        private Button btnMeasureLine;
     }
 }

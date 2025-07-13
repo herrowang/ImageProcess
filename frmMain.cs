@@ -15,8 +15,9 @@ namespace ImageProcess
         private PictureBox picLoadImg;
         private bool bBeginDrag;
         private MouseCrossDirectionType directType;
-        private List<Rectangle> rects;
+        private List<TROI> rects;
         private ROIACTType roiAct;
+        private ImgLib imgProc;
         Point pCenter;
         Rectangle rect;
         TROI gROI;
@@ -36,11 +37,13 @@ namespace ImageProcess
             this.Left = 0;
             this.DoubleBuffered = true;
             bBeginDrag = false;
+            imgProc = null;
             picLoadImg = new PictureBox();
             picLoadImg.Left = this.Left + 20;
             picLoadImg.Top = this.Top + 20;
             picLoadImg.MouseDown += new MouseEventHandler(pictureOnMouseDown);
             picLoadImg.MouseMove += new MouseEventHandler(pictureOnMouseMove);
+            picLoadImg.MouseUp += new MouseEventHandler(pictureOnMouseUp);
             picLoadImg.Paint += new PaintEventHandler(picLoadImgOnPaint);
             picLoadImg.DragEnter += new DragEventHandler(pictureMouseDragEnter);
             picLoadImg.DragOver += new DragEventHandler(pictureMouseDragOver);
@@ -79,11 +82,15 @@ namespace ImageProcess
             btnBlob.Left = tackBWTh.Right + 10;
             btnBlob.Width = btnAddROI.Width;
             btnBlob.Height = btnAddROI.Height;
+            btnMeasureLine.Left = btnRGB2BW.Left;
+            btnMeasureLine.Top = btnRGB2BW.Bottom + 10;
+            btnMeasureLine.Width = btnRGB2BW.Width;
+            btnMeasureLine.Height = btnRGB2BW.Height;
             radBtnWhite.Top = btnBlob.Top;
             radBtnWhite.Left = btnBlob.Right + 10;
             radBtnBlack.Top = radBtnWhite.Bottom + 10;
             radBtnBlack.Left = radBtnWhite.Left;
-            rects = new List<Rectangle>();
+            rects = new List<TROI>();
         }
         private void pictureMouseDragEnter(object sender, DragEventArgs e)
         {
@@ -120,22 +127,70 @@ namespace ImageProcess
 
             if (p != null)
             {
-                if ((Math.Abs(e.X - pCenter.X) <= 20) && (Math.Abs(e.Y - pCenter.Y) <= 20))
+                switch (gROI.GetROIType())
                 {
-                    if (bBeginDrag == true && e.Button == MouseButtons.Left)
-                    {
-                        pCenter.X = e.X;
-                        pCenter.Y = e.Y;
-                        rect.X = (pCenter.X - rect.Width / 2);
-                        rect.Y = (pCenter.Y - rect.Height / 2);
+                    case ROIType.MeasureLine:
+                        gROI.SetStartPosition(new Point(e.X, e.Y));
+                        gROI.SetEndPosition(new Point(e.X, e.Y));
+                        break;
+                    default:
+                        if ((Math.Abs(e.X - pCenter.X) <= 20) && (Math.Abs(e.Y - pCenter.Y) <= 20))
+                        {
+                            if (bBeginDrag == true && e.Button == MouseButtons.Left)
+                            {
+                                pCenter.X = e.X;
+                                pCenter.Y = e.Y;
+                                rect.X = (pCenter.X - rect.Width / 2);
+                                rect.Y = (pCenter.Y - rect.Height / 2);
 
-                    }
-                }
-                else
-                {
-                    Cursor = Cursors.Arrow;
+                            }
+                        }
+                        else
+                        {
+                            Cursor = Cursors.Arrow;
+                        }
+                        break;
                 }
             }
+        }
+
+        private void pictureOnMouseUp(object sender, MouseEventArgs e)
+        {
+            PictureBox p = (PictureBox)sender;
+
+            if (p != null)
+            {
+                if (gROI == null)
+                {
+                    return;
+                }
+
+                switch (gROI.GetROIType())
+                {
+                    case ROIType.MeasureLine:
+                        gROI.SetEndPosition(new Point(e.X, e.Y));
+                        gROI.SetRegionPos(gROI.GetLine());
+                        break;
+                    default:
+                        if ((Math.Abs(e.X - pCenter.X) <= 20) && (Math.Abs(e.Y - pCenter.Y) <= 20))
+                        {
+                            if (bBeginDrag == true && e.Button == MouseButtons.Left)
+                            {
+                                pCenter.X = e.X;
+                                pCenter.Y = e.Y;
+                                rect.X = (pCenter.X - rect.Width / 2);
+                                rect.Y = (pCenter.Y - rect.Height / 2);
+
+                            }
+                        }
+                        else
+                        {
+                            Cursor = Cursors.Arrow;
+                        }
+                        break;
+                }
+            }
+            bBeginDrag = false;
         }
 
         private void pictureOnMouseMove(object sender, MouseEventArgs e)
@@ -144,24 +199,28 @@ namespace ImageProcess
 
             if (p != null)
             {
-                if (gROI != null 
+                if (gROI == null)
+                {
+                    return;
+                }
+
+                if (gROI != null
                     && (e.X >= gROI.GetRegion().X
                     && e.X <= gROI.GetRegion().Right
                     && e.Y <= gROI.GetRegion().Bottom
                     && e.Y >= gROI.GetRegion().Top))
                 {
-                    roiAct = ROIACTType.Attach;
+                    if (roiAct != ROIACTType.DrawLine)
+                    {
+                        roiAct = ROIACTType.Attach;
+                    }
                 }
-                    if ((e.X >= pnlMainDisplay.Left && e.Y >= pnlMainDisplay.Top)
-                    && (e.X <= pnlMainDisplay.Right && e.Y <= pnlMainDisplay.Bottom))
+
+                if ((e.X >= picLoadImg.Left && e.Y >= picLoadImg.Top)
+                && (e.X <= picLoadImg.Right && e.Y <= picLoadImg.Bottom))
                 {
                     labX.Text = "X:" + e.X.ToString();
                     labY.Text = "Y:" + e.Y.ToString();
-                }
-
-                if (gROI == null)
-                {
-                    return;
                 }
 
                 Cursor = gROI.GetMouseCursor(new Point(e.X, e.Y), gROI);
@@ -280,30 +339,53 @@ namespace ImageProcess
 
         private void picLoadImgOnPaint(object sender, PaintEventArgs e)
         {
+            BlobType type = (radBtnWhite.Checked == true ? BlobType.White : BlobType.Black);
             if (gROI != null)
             {
 
-                switch(roiAct)
+                switch (roiAct)
                 {
                     case ROIACTType.DrawBlob:
                         if (rects.Count > 0)
                         {
                             gROI.DrawROIs(rects, gROI, e.Graphics);
-                            picLoadImg.Update();
-                            picLoadImg.Refresh();
                         }
                         break;
                     case ROIACTType.Attach:
                         gROI.DrawROI(e.Graphics);
-                        picLoadImg.Update();
-                        picLoadImg.Refresh();
                         break;
+                    case ROIACTType.DrawLine:
+                        TROI measure_area = new TROI(gROI.GetLine().start.X - 10, gROI.GetLine().start.Y - 10, ((gROI.GetLine().end.X + 10) - (gROI.GetLine().start.X - 10)), ((gROI.GetLine().end.Y + 10) - (gROI.GetLine().start.Y - 10)), ROIType.Rectangle);
+                        measure_area.SetStartPosition(gROI.GetLine().start);
+                        measure_area.SetEndPosition(gROI.GetLine().end);
+                        
+
+                        if (bBeginDrag == false)
+                        {
+                            TROI test = imgProc.MeasureLine(measure_area, bmpSrcImg, roiAct, type, tackBWTh.Value);
+                            TLine l = new TLine();
+                            l.start.X = gROI.GetLine().start.X - 10;
+                            l.start.Y = gROI.GetLine().start.Y - 10;
+                            l.end.X = gROI.GetLine().end.X + 10;
+                            l.end.Y = gROI.GetLine().end.Y + 10;
+                            test.SetRegionPos(l);
+                            gROI.DrawLine(test, e.Graphics);
+                        }
+                        else
+                        {
+                            gROI.DrawLine(gROI, e.Graphics);
+                        }
+
+
+                            break;
                 }
+                picLoadImg.Update();
+                picLoadImg.Refresh();
             }
         }
         private void btn2Gray_Click(object sender, EventArgs e)
         {
-            ImgLib imgProc = new ImgLib(bmpSrcImg);
+            imgProc = new ImgLib(bmpSrcImg);
             Bitmap grayImage = imgProc.RGB2Gray(gROI, bmpSrcImg);
 
             if (grayImage != null)
@@ -319,7 +401,7 @@ namespace ImageProcess
         }
         private void btnRGB2BW_Click(object sender, EventArgs e)
         {
-            ImgLib imgProc = new ImgLib(bmpSrcImg);
+            imgProc = new ImgLib(bmpSrcImg);
             Bitmap bwImage = imgProc.RGB2BW(gROI, bmpSrcImg, tackBWTh.Value);
 
             if (bwImage != null)
@@ -365,7 +447,7 @@ namespace ImageProcess
 
         private void btnBlob_Click(object sender, EventArgs e)
         {
-            ImgLib imgProc = new ImgLib(bmpSrcImg);
+            imgProc = new ImgLib(bmpSrcImg);
             Graphics g = picLoadImg.CreateGraphics();
             BlobType type = (radBtnWhite.Checked == true ? BlobType.White : BlobType.Black);
             roiAct = ROIACTType.DrawBlob;
@@ -373,6 +455,16 @@ namespace ImageProcess
             {
                 rects = imgProc.BlobObject(gROI, bmpSrcImg, type, tackBWTh.Value);
             }
+        }
+
+        private void btnMeasureLine_Click(object sender, EventArgs e)
+        {
+            imgProc = new ImgLib(bmpSrcImg);
+            Graphics g = picLoadImg.CreateGraphics();
+            roiAct = ROIACTType.DrawLine;
+            gROI = new TROI(this.Top + (picLoadImg.Width / 3), this.Left + (picLoadImg.Height / 3), 100, 100, ROIType.MeasureLine);
+            bBeginDrag = true;
+            picLoadImg.Invalidate();
         }
     }
 }
