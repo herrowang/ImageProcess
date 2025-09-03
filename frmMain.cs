@@ -527,24 +527,71 @@ namespace ImageProcess
             else
             {
                 Graphics g = picLoadImg.CreateGraphics();
+                BlobType type = (radBtnWhite.Checked == true ? BlobType.White : BlobType.Black);
 
-                if (rects.Count > 0)
+                if (gROI != null)
                 {
-                    gROI.DrawROIs(rects, gROI, g);
+                    switch (roiAct)
+                    {
+                        case ROIACTType.DrawBlob:
+                            if (rects.Count > 0)
+                            {
+                                gROI.DrawROIs(rects, gROI, g);
+                            }
+                            break;
+                        case ROIACTType.DrawDualRectangle:
+                            List<Point> ps = null;
+                            if (gROI.measureRois.Count == gROI.nMaxROIs)
+                            {
+                                if (startDrawPoints == false)
+                                {
+                                    foreach (Rectangle r in gROI.measureRois)
+                                    {
+                                        ps = imgProc.FindEdge(gROI, bmpSrcImg, roiAct, r, tackBWTh.Value);
+                                        gROI.DrawPoints(g, ps, r);
+                                    }
+                                    startDrawPoints = true;
+                                }
+                            }
+                            else
+                            {
+                                gROI.DrawROI(g);
+                            }
+                            break;
+                        case ROIACTType.Attach:
+                            gROI.DrawROI(g);
+                            break;
+                        case ROIACTType.DrawLine:
+                            TROI measure_area = new TROI(gROI.GetLine().start.X - 10, gROI.GetLine().start.Y - 10, ((gROI.GetLine().end.X + 10) - (gROI.GetLine().start.X - 10)), ((gROI.GetLine().end.Y + 10) - (gROI.GetLine().start.Y - 10)), ROIType.Rectangle);
+                            measure_area.SetStartPosition(gROI.GetLine().start);
+                            measure_area.SetEndPosition(gROI.GetLine().end);
+                            if (bBeginDrag == false)
+                            {
+                                TROI test = imgProc.MeasureLine(measure_area, bmpSrcImg, roiAct, type, tackBWTh.Value);
+                                TLine l = new TLine();
+                                l.start.X = gROI.GetLine().start.X - 10;
+                                l.start.Y = gROI.GetLine().start.Y - 10;
+                                l.end.X = gROI.GetLine().end.X + 10;
+                                l.end.Y = gROI.GetLine().end.Y + 10;
+                                test.SetRegionPos(l);
+                                gROI.DrawLine(test, g, measureType);
+                            }
+                            else
+                            {
+                                gROI.DrawLine(gROI, g, measureType);
+                            }
+                            break;
+                    }
+                    picLoadImg.Update();
+                    picLoadImg.Refresh();
                 }
-                else
-                {
-                    gROI.DrawROI(g);
-                }
-
-                picLoadImg.Update();
-                picLoadImg.Refresh();
             }
         }
 
         private void picLoadImgOnPaint(object sender, PaintEventArgs e)
         {
             BlobType type = (radBtnWhite.Checked == true ? BlobType.White : BlobType.Black);
+
             if (gROI != null)
             {
                 switch (roiAct)
@@ -559,7 +606,7 @@ namespace ImageProcess
                         List<Point> ps = null;
                         if (gROI.measureRois.Count == gROI.nMaxROIs)
                         {
-                            if (startDrawPoints = false)
+                            //if (startDrawPoints == false)
                             {
                                 foreach (Rectangle r in gROI.measureRois)
                                 {
