@@ -41,9 +41,6 @@ namespace RoomCV
     {
         Attach = 1,
         DrawBlob,
-        DrawLine,
-        DrawDualRectangle,
-        End,
     }
     public enum BlobType
     {
@@ -97,8 +94,6 @@ namespace RoomCV
         {
             directionType = MouseCrossDirectionType.Center;
             roiType = rType;
-            nMaxROIs = rType == ROIType.DualRectangle ? 2 : 1;
-            line = new TLine();
             rect = new Rectangle(pos, s);
             pen = new Pen(Color.Red, 2);
             rects = new List<Rectangle>();
@@ -132,6 +127,18 @@ namespace RoomCV
         public bool SetCenterPos(Point pos)
         {
             Center = new Point(pos.X, pos.Y);
+
+            return true;
+        }
+
+        public bool SetPathes(List<Point> points)
+        {
+            if (paths == null)
+            {
+                return false;
+            }
+
+            paths = points;
 
             return true;
         }

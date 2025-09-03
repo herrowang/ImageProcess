@@ -292,7 +292,6 @@ namespace ImageProcess
             }
             bBeginDrag = false;
         }
-
         private void pictureOnMouseMove(object sender, MouseEventArgs e)
         {
             PictureBox p = (PictureBox)sender;

@@ -330,6 +330,18 @@
             btnBlob.UseVisualStyleBackColor = true;
             btnBlob.Click += btnBlob_Click;
             // 
+            // btnMeasureLine
+            // 
+            btnMeasureLine.Font = new Font("Microsoft JhengHei UI", 12F);
+            btnMeasureLine.ImageAlign = ContentAlignment.MiddleLeft;
+            btnMeasureLine.Location = new Point(851, 288);
+            btnMeasureLine.Name = "btnMeasureLine";
+            btnMeasureLine.Size = new Size(94, 72);
+            btnMeasureLine.TabIndex = 14;
+            btnMeasureLine.Text = "Draw Line";
+            btnMeasureLine.UseVisualStyleBackColor = true;
+            btnMeasureLine.Click += btnMeasureLine_Click;
+            // 
             // frmMain
             // 
             AutoScaleDimensions = new SizeF(9F, 19F);
