@@ -41,6 +41,8 @@ namespace RoomCV
     {
         Attach = 1,
         DrawBlob,
+        DrawLine,
+        DrawDualRectangle,
     }
     public enum BlobType
     {
@@ -103,6 +105,7 @@ namespace RoomCV
             nWidth = rect.Width;
             nHeight = rect.Height;
             nLength = 0;
+            nMaxROIs = rType == ROIType.DualRectangle ? 2 : 1;
             gravity = new TPoint();
         }
 
@@ -127,18 +130,6 @@ namespace RoomCV
         public bool SetCenterPos(Point pos)
         {
             Center = new Point(pos.X, pos.Y);
-
-            return true;
-        }
-
-        public bool SetPathes(List<Point> points)
-        {
-            if (paths == null)
-            {
-                return false;
-            }
-
-            paths = points;
 
             return true;
         }
